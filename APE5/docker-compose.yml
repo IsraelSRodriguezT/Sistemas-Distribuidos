@@ -1,0 +1,76 @@
+# Practica 005 - Mensajeria distribuida con RabbitMQ y MQTT
+# Uso: ./run.sh   (o docker compose up --build)
+
+services:
+  mosquitto:
+    image: eclipse-mosquitto:2.0
+    container_name: mosquitto_broker
+    restart: unless-stopped
+    ports:
+      - "1883:1883"   # MQTT
+      - "9001:9001"   # MQTT sobre WebSockets (reservado)
+    volumes:
+      - ./mosquitto/config:/mosquitto/config
+      - ./mosquitto/data:/mosquitto/data
+    healthcheck:
+      test: ["CMD", "mosquitto_pub", "-h", "localhost", "-t", "health", "-m", "ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq_broker
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: flota
+      RABBITMQ_DEFAULT_PASS: flota123
+    ports:
+      - "5672:5672"     # AMQP
+      - "15672:15672"   # Panel de administracion
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 10s
+      retries: 12
+
+  suscriptor:
+    build: .
+    command: python suscriptor_almacenador.py
+    restart: unless-stopped
+    environment:
+      MQTT_BROKER: mosquitto
+    volumes:
+      # La base SQLite queda en la carpeta del proyecto (telemetria.db)
+      - ./:/app
+    depends_on:
+      mosquitto:
+        condition: service_healthy
+
+  puente:
+    build: .
+    command: python mqtt_rabbitmq_bridge.py
+    restart: unless-stopped
+    environment:
+      MQTT_BROKER: mosquitto
+      RABBITMQ_HOST: rabbitmq
+    depends_on:
+      mosquitto:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  simulador:
+    build: .
+    command: python simulador_sensores.py
+    restart: unless-stopped
+    environment:
+      MQTT_BROKER: mosquitto
+    depends_on:
+      mosquitto:
+        condition: service_healthy
+
+volumes:
+  rabbitmq_data:
