@@ -1,0 +1,19 @@
+services:
+  servidor:
+    build: .
+    image: practica2-sd
+    command: python3 servidor/servidor.py
+    volumes:
+      - datos:/app/compartido
+
+  cliente:
+    build: .
+    image: practica2-sd
+    command: python3 cliente/cliente.py
+    stdin_open: true
+    tty: true
+    volumes:
+      - datos:/app/compartido
+
+volumes:
+  datos:
