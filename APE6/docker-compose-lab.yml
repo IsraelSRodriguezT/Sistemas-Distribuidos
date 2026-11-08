@@ -1,0 +1,37 @@
+# Variante para el laboratorio de dos maquinas.
+# La maquina B ejecuta solo app + puente + simulador y se conecta
+# a los brokers de la maquina A mediante las variables MQTT_BROKER
+# y RABBITMQ_HOST.
+name: practica6-lab
+
+services:
+  fleet-monitor:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      RABBITMQ_HOST: ${RABBITMQ_HOST}
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USER: admin
+      RABBITMQ_PASS: admin123
+
+  puente:
+    build: ./mqtt
+    command: ["python", "mqtt_rabbitmq_bridge.py"]
+    restart: unless-stopped
+    environment:
+      MQTT_BROKER: ${MQTT_BROKER}
+      RABBITMQ_HOST: ${RABBITMQ_HOST}
+      RABBITMQ_USER: admin
+      RABBITMQ_PASS: admin123
+
+  simulador:
+    build: ./mqtt
+    command: ["python", "simulador_sensores.py"]
+    restart: unless-stopped
+    environment:
+      MQTT_BROKER: ${MQTT_BROKER}
+    depends_on:
+      puente:
+        condition: service_started
