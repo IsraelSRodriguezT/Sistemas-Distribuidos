@@ -1,0 +1,30 @@
+services:
+  estacionamiento:
+    build: ./estacionamiento-service
+    ports:
+      - "8080:8080"
+
+  cajero:
+    build: ./cajero-service
+    ports:
+      - "8082:8082"
+
+  fabrica:
+    build: ./fabrica-service
+    ports:
+      - "8083:8083"
+
+  puente:
+    build: ./puente-service
+    ports:
+      - "8084:8084"
+
+  impresion:
+    build: ./impresion-service
+    ports:
+      - "8085:8085"
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "5500:80"
